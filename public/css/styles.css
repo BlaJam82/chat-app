@@ -104,6 +104,15 @@ body::before {
   font-size: 1.25em;
 }
 
+.chat-page .login-container {
+  /* Only applies on /chat/:room */
+  justify-content: flex-start;
+}
+
+.chat-page .login-container h2 {
+  margin-bottom: 0px;
+}
+
 /* ------------- FORMS ------------- */
 form {
   width: min(400px, 100%);
@@ -334,7 +343,7 @@ button:focus {
   color: black;
   padding: 15px;
   border-radius: 15px;
-  height: 350px;
+  /* height: 350px; */
   overflow-y: auto;
   width: 100%;
   margin-bottom: 10px;
@@ -690,7 +699,7 @@ a:hover {
     width: 100vw;
     height: 100vh;
     border-radius: 0;
-    padding: 20px;
+    padding: 0px 5px;
     max-height: none;
     overflow-y: auto;
     justify-content: center;
@@ -710,14 +719,13 @@ a:hover {
   button,
   #chatBox,
   .chat-message,
-  .timestamp,
   .room-item,
   .room-link,
   .modal-box,
   .modal-box input[type="text"],
   .modal-box button {
-    font-size: 14px;
-    /* padding: 6px 12px; */
+    font-size: 1rem;
+    padding-right: 0.75rem;
   }
 
   button {
@@ -725,7 +733,7 @@ a:hover {
   }
 
   #chatBox {
-    height: 300px;
+    /* height: 300px; */
     padding: 10px;
   }
 }
@@ -736,7 +744,7 @@ a:hover {
   }
 
   button {
-    font-size: 13px;
+    font-size: 1rem;
     padding: 6px 14px;
   }
 

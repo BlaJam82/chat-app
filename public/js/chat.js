@@ -23,7 +23,7 @@ function formatTime(dateInput) {
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "Invalid Time";
 
-  const year = d.getFullYear();
+  const year = String(d.getFullYear()).slice(-2);
   const month = (d.getMonth() + 1).toString().padStart(2, "0");
   const day = d.getDate().toString().padStart(2, "0");
 

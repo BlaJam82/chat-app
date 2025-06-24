@@ -174,13 +174,17 @@ function buildRoomItem(room, lastMessages) {
   const li = document.createElement("li");
   li.classList.add("room-item");
 
+  // Make <li> clickable instead of just the link
+  li.addEventListener("click", (e) => handleRoomClick(e, room));
+
   const link = document.createElement("a");
   link.href = "#";
   link.textContent = capitalizeWords(room);
   link.classList.add("room-link");
   if (!enrolledRooms.includes(room)) link.classList.add("not-joined");
 
-  link.addEventListener("click", (e) => handleRoomClick(e, room));
+  // ❌ Remove individual link listener
+  // link.addEventListener("click", (e) => handleRoomClick(e, room));
 
   const lastMessageSpan = document.createElement("span");
   const lastTimeSpan = document.createElement("span");
@@ -194,13 +198,14 @@ function buildRoomItem(room, lastMessages) {
     lastMessageSpan.textContent = `${msg.sender}: ${preview}`;
 
     const d = new Date(msg.createdAt);
-    lastTimeSpan.textContent = `${d.toLocaleDateString()} ${d.toLocaleTimeString(
-      [],
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    )}`;
+    lastTimeSpan.textContent = `${d.toLocaleDateString("en-US", {
+      year: "2-digit",
+      month: "numeric",
+      day: "numeric",
+    })} ${d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
   } else {
     lastMessageSpan.textContent = "Be the first to leave a message";
     lastTimeSpan.textContent = "";
@@ -210,8 +215,10 @@ function buildRoomItem(room, lastMessages) {
   leaveBtn.textContent = "❌";
   leaveBtn.classList.add("leave-btn");
 
+  // Prevent ❌ button from triggering parent <li> click
   leaveBtn.addEventListener("click", (e) => {
     e.preventDefault();
+    e.stopPropagation(); // 👈 Important
     if (!confirm("Are you sure you want to leave this room?")) return;
 
     fetch("/user/room/toggle", {
