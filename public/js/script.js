@@ -78,158 +78,183 @@ function renderRooms(
   const sortedCategories = Object.keys(grouped).sort();
 
   sortedCategories.forEach((category) => {
-    const isVisible = visibleCategories?.[category] !== false;
-
-    const categoryContainer = document.createElement("div");
-    categoryContainer.classList.add("category-container");
-
-    const categoryHeader = document.createElement("div");
-    categoryHeader.classList.add("category-header");
-
-    const headerText = document.createElement("span");
-    headerText.textContent = capitalizeWords(category);
-
-    const toggleIcon = document.createElement("i");
-    toggleIcon.classList.add(
-      "fas",
-      "toggle-icon",
-      isVisible ? "fa-chevron-down" : "fa-chevron-up"
+    const categoryContainer = buildCategoryContainer(
+      category,
+      grouped,
+      lastMessages,
+      filterRooms,
+      searchQuery
     );
-
-    toggleIcon.addEventListener("click", (e) => {
-      e.preventDefault();
-      fetch("/user/category/toggle", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ categoryName: category }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          visibleCategories[category] = data.visible;
-          renderRooms(allGroupedRooms, lastMessages);
-        })
-        .catch((err) => console.error("Error toggling category:", err));
-    });
-
-    categoryHeader.appendChild(headerText);
-    categoryHeader.appendChild(toggleIcon);
-    categoryContainer.appendChild(categoryHeader);
-
-    const roomListEl = document.createElement("ul");
-    roomListEl.classList.add("room-sublist");
-    if (!isVisible) {
-      roomListEl.style.display = "none";
-    }
-
-    const enrolledAndVisibleRooms = grouped[category].filter((room) => {
-      const joined = filterRooms ? filterRooms.includes(room) : true;
-      const matchesSearch = room.toLowerCase().includes(searchQuery);
-      return joined && matchesSearch;
-    });
-
-    enrolledAndVisibleRooms.sort().forEach((room) => {
-      const li = document.createElement("li");
-      li.classList.add("room-item");
-      const link = document.createElement("a");
-
-      link.href = "#"; // Prevent default navigation
-
-      link.addEventListener("click", (e) => {
-        e.preventDefault();
-
-        const isEnrolled = enrolledRooms.includes(room.toLowerCase());
-
-        if (isEnrolled) {
-          window.location.href = `/chat/${encodeURIComponent(room)}`;
-        } else {
-          const confirmJoin = confirm(
-            "You’re not enrolled in this room. Would you like to join it?"
-          );
-          if (!confirmJoin) return;
-
-          // Enroll user
-          fetch("/user/room/toggle", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomName: room }),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success) {
-                enrolledRooms.push(room); // Add room locally
-                window.location.href = `/chat/${encodeURIComponent(room)}`;
-              }
-            })
-            .catch((err) => console.error("Failed to join room:", err));
-        }
-      });
-
-      link.textContent = capitalizeWords(room);
-      if (!enrolledRooms.includes(room)) {
-        link.classList.add("not-joined");
-      }
-
-      link.classList.add("room-link");
-
-      const lastMessageSpan = document.createElement("span");
-      lastMessageSpan.classList.add("last-message");
-
-      const lastTimeSpan = document.createElement("span");
-      lastTimeSpan.classList.add("last-time");
-
-      const lastMsg = lastMessages[room];
-      if (lastMsg && lastMsg.text && lastMsg.sender) {
-        const preview =
-          lastMsg.text.length > 40
-            ? lastMsg.text.slice(0, 40) + "…"
-            : lastMsg.text;
-
-        lastMessageSpan.textContent = `${lastMsg.sender}: ${preview}`;
-
-        const d = new Date(lastMsg.createdAt);
-        lastTimeSpan.textContent =
-          d.toLocaleDateString() +
-          " " +
-          d.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-      } else {
-        lastMessageSpan.textContent = "Be the first to leave a message";
-        lastTimeSpan.textContent = "";
-      }
-
-      const leaveBtn = document.createElement("button");
-      leaveBtn.textContent = "❌";
-      leaveBtn.classList.add("leave-btn");
-
-      leaveBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-
-        const confirmed = confirm("Are you sure you want to leave this room?");
-        if (!confirmed) return;
-
-        fetch("/user/room/toggle", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ roomName: room }),
-        }).then(() => socket.emit("getRooms"));
-      });
-
-      li.appendChild(link);
-      li.appendChild(lastMessageSpan);
-      li.appendChild(lastTimeSpan);
-      li.appendChild(leaveBtn);
-      roomListEl.appendChild(li);
-    });
-
-    categoryContainer.appendChild(roomListEl);
     roomList.appendChild(categoryContainer);
   });
+}
+
+function buildCategoryContainer(
+  category,
+  grouped,
+  lastMessages,
+  filterRooms,
+  searchQuery
+) {
+  const isVisible = visibleCategories?.[category] !== false;
+
+  const container = document.createElement("div");
+  container.classList.add("category-container");
+
+  const header = buildCategoryHeader(category);
+  container.appendChild(header);
+
+  const roomListEl = document.createElement("ul");
+  roomListEl.classList.add("room-sublist");
+  if (!isVisible) roomListEl.style.display = "none";
+
+  const visibleRooms = getVisibleRooms(
+    grouped[category],
+    filterRooms,
+    searchQuery
+  );
+
+  visibleRooms.sort().forEach((room) => {
+    const li = buildRoomItem(room, lastMessages);
+    roomListEl.appendChild(li);
+  });
+
+  container.appendChild(roomListEl);
+  return container;
+}
+
+function buildCategoryHeader(category) {
+  const header = document.createElement("div");
+  header.classList.add("category-header");
+
+  const text = document.createElement("span");
+  text.textContent = capitalizeWords(category);
+
+  const icon = document.createElement("i");
+  const isVisible = visibleCategories?.[category] !== false;
+  icon.classList.add(
+    "fas",
+    "toggle-icon",
+    isVisible ? "fa-chevron-down" : "fa-chevron-up"
+  );
+
+  icon.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleCategory(category);
+  });
+
+  header.appendChild(text);
+  header.appendChild(icon);
+  return header;
+}
+
+function toggleCategory(category) {
+  fetch("/user/category/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ categoryName: category }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      visibleCategories[category] = data.visible;
+      renderRooms(allGroupedRooms, lastMessages);
+    })
+    .catch((err) => console.error("Error toggling category:", err));
+}
+
+function getVisibleRooms(rooms, filterRooms, searchQuery) {
+  return rooms.filter((room) => {
+    const joined = filterRooms ? filterRooms.includes(room) : true;
+    const matchesSearch = room.toLowerCase().includes(searchQuery);
+    return joined && matchesSearch;
+  });
+}
+
+function buildRoomItem(room, lastMessages) {
+  const li = document.createElement("li");
+  li.classList.add("room-item");
+
+  const link = document.createElement("a");
+  link.href = "#";
+  link.textContent = capitalizeWords(room);
+  link.classList.add("room-link");
+  if (!enrolledRooms.includes(room)) link.classList.add("not-joined");
+
+  link.addEventListener("click", (e) => handleRoomClick(e, room));
+
+  const lastMessageSpan = document.createElement("span");
+  const lastTimeSpan = document.createElement("span");
+  lastMessageSpan.classList.add("last-message");
+  lastTimeSpan.classList.add("last-time");
+
+  const msg = lastMessages[room];
+  if (msg && msg.text && msg.sender) {
+    const preview =
+      msg.text.length > 40 ? msg.text.slice(0, 40) + "…" : msg.text;
+    lastMessageSpan.textContent = `${msg.sender}: ${preview}`;
+
+    const d = new Date(msg.createdAt);
+    lastTimeSpan.textContent = `${d.toLocaleDateString()} ${d.toLocaleTimeString(
+      [],
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    )}`;
+  } else {
+    lastMessageSpan.textContent = "Be the first to leave a message";
+    lastTimeSpan.textContent = "";
+  }
+
+  const leaveBtn = document.createElement("button");
+  leaveBtn.textContent = "❌";
+  leaveBtn.classList.add("leave-btn");
+
+  leaveBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!confirm("Are you sure you want to leave this room?")) return;
+
+    fetch("/user/room/toggle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomName: room }),
+    }).then(() => socket.emit("getRooms"));
+  });
+
+  li.appendChild(link);
+  li.appendChild(lastMessageSpan);
+  li.appendChild(lastTimeSpan);
+  li.appendChild(leaveBtn);
+
+  return li;
+}
+
+function handleRoomClick(e, room) {
+  e.preventDefault();
+  const isEnrolled = enrolledRooms.includes(room.toLowerCase());
+
+  if (isEnrolled) {
+    window.location.href = `/chat/${encodeURIComponent(room)}`;
+  } else {
+    const confirmJoin = confirm(
+      "You’re not enrolled in this room. Would you like to join it?"
+    );
+    if (!confirmJoin) return;
+
+    fetch("/user/room/toggle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomName: room }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          enrolledRooms.push(room); // Update local cache
+          window.location.href = `/chat/${encodeURIComponent(room)}`;
+        }
+      })
+      .catch((err) => console.error("Failed to join room:", err));
+  }
 }
 
 // 👇 Code only relevant when on the index page (room join form)
