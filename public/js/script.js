@@ -257,8 +257,15 @@ function handleRoomClick(e, room) {
   }
 }
 
-// 👇 Code only relevant when on the index page (room join form)
 if (roomForm) {
+  setupRoomForm();
+  setupCategoryDropdown();
+  setupRoomToggleButton();
+  setupFlashMessage();
+  socket.on("message", handleAdminMessage);
+}
+
+function setupRoomForm() {
   roomForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
@@ -272,136 +279,103 @@ if (roomForm) {
       category = customCategoryInput.value.trim();
     }
 
-    if (room) {
-      socket.emit("joinRoom", {
-        room,
-        sender: firstName,
-        category,
-        create: true,
-      });
+    if (!room) return;
 
-      // Listen for "roomExists" error from server
-      socket.once("roomExists", (data) => {
-        const userConfirmed = confirm(
-          `"${capitalizeWords(
-            data.room
-          )}" already exists.\nWould you like to join it instead?`
-        );
-
-        if (userConfirmed) {
-          // Re-emit to join without creating
-          socket.emit("joinRoom", {
-            room: data.room,
-            sender: firstName,
-            category,
-            create: false,
-          });
-        } else {
-          return; // Do not redirect
-        }
-      });
-
-      // Only redirect after welcome message
-      socket.once("message", (data) => {
-        if (data.sender === "Admin" && data.text.includes("Welcome")) {
-          const encodedRoom = encodeURIComponent(room);
-          window.location.href = `/chat/${encodedRoom}`;
-        }
-      });
-    }
-  });
-
-  const categorySelect = document.getElementById("roomCategory");
-  let hasBlurredDropdown = false;
-  if (categorySelect) {
-    categorySelect.addEventListener("change", () => {
-      const selected = categorySelect.value;
-      const filtered =
-        selected === "All"
-          ? allGroupedRooms
-          : { [selected]: allGroupedRooms[selected] };
-
-      renderRooms(filtered, lastMessages);
-
-      // Delay needed to wait until render completes
-      setTimeout(() => {
-        document.querySelectorAll(".room-sublist").forEach((ul) => {
-          ul.classList.toggle("expanded", selected !== "All");
-        });
-      }, 0);
+    socket.emit("joinRoom", {
+      room,
+      sender: firstName,
+      category,
+      create: true,
     });
-    // Force trigger when clicking "All" again
-    categorySelect.addEventListener("click", (e) => {
-      const selected = categorySelect.value;
-      if (selected === "All") {
-        renderRooms(allGroupedRooms, lastMessages);
-        if (selected === "All" && !hasBlurredDropdown) {
-          categorySelect.blur();
-          hasBlurredDropdown = true;
-        }
+
+    socket.once("roomExists", (data) => {
+      const confirmJoin = confirm(
+        `"${capitalizeWords(data.room)}" already exists.\nJoin it instead?`
+      );
+
+      if (confirmJoin) {
+        socket.emit("joinRoom", {
+          room: data.room,
+          sender: firstName,
+          category,
+          create: false,
+        });
       }
     });
-  }
-  // Show room list after clicking on drop down menu
-  function showRoomList() {
-    roomList.style.display = "flex";
-    roomList.style.height = "100vh";
-    roomForm.style.display = "none";
-    backToRoomsIndex.style.display = "block";
-    showRoomsBtn.style.display = "none";
-    document.querySelector(".room-header-container")?.classList.add("active");
-  }
 
+    socket.once("message", (data) => {
+      if (data.sender === "Admin" && data.text.includes("Welcome")) {
+        const encodedRoom = encodeURIComponent(room);
+        window.location.href = `/chat/${encodedRoom}`;
+      }
+    });
+  });
+}
+
+function setupCategoryDropdown() {
+  const categorySelect = document.getElementById("roomCategory");
+  let hasBlurred = false;
+  if (!categorySelect) return;
+
+  categorySelect.addEventListener("change", () => {
+    const selected = categorySelect.value;
+    const filtered =
+      selected === "All"
+        ? allGroupedRooms
+        : { [selected]: allGroupedRooms[selected] };
+
+    renderRooms(filtered, lastMessages);
+
+    setTimeout(() => {
+      document.querySelectorAll(".room-sublist").forEach((ul) => {
+        ul.classList.toggle("expanded", selected !== "All");
+      });
+    }, 0);
+  });
+
+  categorySelect.addEventListener("click", () => {
+    const selected = categorySelect.value;
+    if (selected === "All" && !hasBlurred) {
+      renderRooms(allGroupedRooms, lastMessages);
+      categorySelect.blur();
+      hasBlurred = true;
+    }
+  });
+}
+
+function setupRoomToggleButton() {
   showRoomsBtn.addEventListener("click", () => {
     renderRooms(allGroupedRooms, lastMessages);
     showRoomList();
   });
 
   document.addEventListener("DOMContentLoaded", () => {
-    const flashMessage = document.getElementById("flash-message");
-    if (flashMessage) {
-      setTimeout(() => {
-        flashMessage.style.display = "none";
-      }, 3500);
-    }
-
     const categorySelect = document.getElementById("roomCategory");
-    if (!categorySelect) return;
+    if (!categorySelect || document.getElementById("joinedRoomsHeading"))
+      return;
 
-    // Avoid duplicating if already inserted
-    if (document.getElementById("joinedRoomsHeading")) return;
-
-    // Create container
     const container = document.createElement("div");
     container.classList.add("room-header-container");
 
-    // Heading
     const heading = document.createElement("h2");
     heading.id = "joinedRoomsHeading";
     heading.textContent = "Joined Rooms";
 
-    // Show All toggle
     const showAllToggle = document.createElement("button");
-    showAllToggle.textContent = "Show All Rooms";
     showAllToggle.classList.add("show-all-btn");
+    showAllToggle.textContent = "Show All Rooms";
 
     let showingAll = false;
-
     showAllToggle.addEventListener("click", () => {
       showingAll = !showingAll;
       showAllRooms = showingAll;
 
       socket.emit("getRooms", { showAll: showAllRooms });
 
+      heading.textContent = showingAll ? "All Rooms" : "Joined Rooms";
       showAllToggle.textContent = showingAll
         ? "Show Joined Rooms"
         : "Show All Rooms";
-
-      // ✅ Update the heading dynamically
-      const heading = document.getElementById("joinedRoomsHeading");
-      if (heading) {
-        heading.textContent = showingAll ? "All Rooms" : "Joined Rooms";
-      }
 
       renderRooms(
         allGroupedRooms,
@@ -410,12 +384,10 @@ if (roomForm) {
       );
     });
 
-    // Search bar
     const searchInput = document.createElement("input");
     searchInput.type = "text";
     searchInput.placeholder = "Search rooms...";
     searchInput.classList.add("room-search");
-
     searchInput.addEventListener("input", (e) => {
       const query = e.target.value.toLowerCase();
       renderRooms(
@@ -426,17 +398,35 @@ if (roomForm) {
       );
     });
 
-    // Insert before categorySelect
-    categorySelect.parentNode.insertBefore(container, categorySelect);
     container.appendChild(heading);
     container.appendChild(showAllToggle);
     container.appendChild(searchInput);
     container.appendChild(categorySelect);
-  });
 
-  socket.on("message", (data) => {
-    if (data.sender === "Admin" && adminMessage) {
-      adminMessage.textContent = data.text;
-    }
+    categorySelect.parentNode.insertBefore(container, categorySelect);
   });
+}
+
+function showRoomList() {
+  roomList.style.display = "flex";
+  roomList.style.height = "100vh";
+  roomForm.style.display = "none";
+  backToRoomsIndex.style.display = "block";
+  showRoomsBtn.style.display = "none";
+  document.querySelector(".room-header-container")?.classList.add("active");
+}
+
+function setupFlashMessage() {
+  const flashMessage = document.getElementById("flash-message");
+  if (flashMessage) {
+    setTimeout(() => {
+      flashMessage.style.display = "none";
+    }, 3500);
+  }
+}
+
+function handleAdminMessage(data) {
+  if (data.sender === "Admin" && adminMessage) {
+    adminMessage.textContent = data.text;
+  }
 }
