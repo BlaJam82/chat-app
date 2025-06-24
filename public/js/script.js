@@ -180,7 +180,7 @@ function buildRoomItem(room, lastMessages) {
   const link = document.createElement("a");
   link.href = "#";
   link.textContent = capitalizeWords(room);
-  link.classList.add("room-link");
+  link.classList.add("room-link", "two-line-truncate");
   if (!enrolledRooms.includes(room)) link.classList.add("not-joined");
 
   // ❌ Remove individual link listener
@@ -188,7 +188,7 @@ function buildRoomItem(room, lastMessages) {
 
   const lastMessageSpan = document.createElement("span");
   const lastTimeSpan = document.createElement("span");
-  lastMessageSpan.classList.add("last-message");
+  lastMessageSpan.classList.add("last-message", "two-line-truncate");
   lastTimeSpan.classList.add("last-time");
 
   const msg = lastMessages[room];
