@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Rooms</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="room-section">
+        <form id="roomForm">
+          <h2>Welcome to ChatApp, <%= user.firstName %>!</h2>
+          <h2>Select or Create a Room</h2>
+          <div class="input-group">
+            <i class="fas fa-door-open"></i>
+            <input
+              type="text"
+              name="room"
+              placeholder="Enter a room name"
+              required
+              autocomplete="off"
+            />
+          </div>
+          <div class="input-group">
+            <input
+              type="text"
+              id="customCategory"
+              placeholder="Or enter a new category"
+            />
+          </div>
+          <div class="button-wrapper">
+            <button type="submit">Create or Join Room</button>
+          </div>
+        </form>
+
+        <div class="button-wrapper">
+          <button id="showRooms" type="submit">Show Rooms</button>
+        </div>
+
+        <p id="adminMessage"></p>
+      </div>
+      <div class="category-container">
+        <select name="category" id="roomCategory">
+          <option value="All">All Categories</option>
+          <% categories.forEach((cat) => { %>
+          <option value="<%= cat %>"><%= cat %></option>
+          <% }); %>
+        </select>
+      </div>
+      <ul id="roomList" class="room-list">
+        <!-- Room list items will be injected by JavaScript -->
+      </ul>
+
+      <p class="back-to-rooms-index">
+        <i class="fa-solid fa-arrow-left"></i>
+        <a href="/index" class="link-hover">Back</a>
+      </p>
+
+      <p class="logout-link">
+        <i class="fas fa-sign-out-alt"></i>
+        <a href="/logout" class="link-hover">Log Out</a>
+      </p>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <p id="modalMessage">Are you sure you want to leave this room?</p>
+        <div class="modal-buttons">
+          <button id="confirmLeaveBtn" class="modal-confirm">Yes</button>
+          <button id="cancelLeaveBtn" class="modal-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+       const firstName = "<%= user.firstName %>";
+       let enrolledRooms = <%- JSON.stringify(Array.from(user.enrolledRooms?.entries() || []).filter(([_, v]) => v).map(([k]) => k)) %>;
+      let visibleCategories = <%- JSON.stringify(Object.fromEntries(user.visibleCategories ? [...user.visibleCategories] : [])) %>;
+    </script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

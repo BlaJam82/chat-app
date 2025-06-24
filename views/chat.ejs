@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Room: <%= room %></title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body>
+    <div class="login-container">
+      <h2 id="roomHeader"><%= category %> Room: <%= room %></h2>
+
+      <div id="chatBox" class="chat-box"></div>
+
+      <form id="chatForm">
+        <div class="input-group">
+          <i class="fas fa-comment-dots"></i>
+          <input
+            type="text"
+            id="chatInput"
+            placeholder="Type a message..."
+            required
+            autocomplete="off"
+          />
+        </div>
+        <div class="button-wrapper">
+          <button type="submit">Send</button>
+        </div>
+      </form>
+
+      <p class="back-to-rooms">
+        <i class="fa-solid fa-arrow-left"></i>
+        <a href="/index" class="link-hover">Back to Rooms</a>
+      </p>
+      <p class="logout-link">
+        <i class="fas fa-sign-out-alt"></i>
+        <a href="/logout" class="link-hover">Log Out</a>
+      </p>
+    </div>
+
+    <!-- Popup menu (for Edit/Delete options) -->
+    <div id="messagePopup" class="message-popup hidden">
+      <button id="editBtn">✏️ Edit</button>
+      <button id="deleteBtn">🗑️ Delete</button>
+    </div>
+
+    <!-- Overlay for modals -->
+    <div id="modalOverlay" class="hidden"></div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-box hidden">
+      <h3>Edit Message</h3>
+      <input type="text" id="editInput" />
+      <div class="modal-buttons">
+        <button id="editCancelBtn">Cancel</button>
+        <button id="editConfirmBtn">Save</button>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-box hidden">
+      <h3>Are you sure you want to delete this message?</h3>
+      <div class="modal-buttons">
+        <button id="deleteCancelBtn">No</button>
+        <button id="deleteConfirmBtn">Yes</button>
+      </div>
+    </div>
+
+    <script>
+      const room = "<%= room %>";
+      const sender = "<%= user.firstName %>"; // pulled from session
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/chat.js"></script>
+  </body>
+</html>
