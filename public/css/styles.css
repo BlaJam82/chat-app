@@ -716,7 +716,7 @@ a:hover {
     width: 100vw;
     height: 100dvh;
     border-radius: 0;
-    padding: 0px 5px;
+    padding: 0pxg 5px;
     max-height: none;
     overflow-y: auto;
     justify-content: center;
