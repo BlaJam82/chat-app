@@ -54,7 +54,7 @@ function updateCategoryDropdown(groupedRooms) {
     if (rooms.length > 0) {
       const option = document.createElement("option");
       option.value = category;
-      option.textContent = category;
+      option.textContent = capitalizeWords(category);
       categorySelect.appendChild(option);
     }
   });

@@ -771,12 +771,16 @@ a:hover {
 
   .chat-message {
     max-width: 90%;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .room-item {
     /* padding: 6px 10px; */
     font-size: 0.9rem;
+  }
+
+  .room-search {
+    width: 45%;
   }
 
   .modal-box {
