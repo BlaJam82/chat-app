@@ -81,6 +81,7 @@
     </div>
 
     <script>
+      const firstName = "<%= user.firstName %>";
       let enrolledRooms = <%- JSON.stringify(Array.from(user.enrolledRooms?.entries() || []).filter(([_, v]) => v).map(([k]) => k)) %>;
       let visibleCategories = <%- JSON.stringify(Object.fromEntries(user.visibleCategories ? [...user.visibleCategories] : [])) %>;
     </script>
