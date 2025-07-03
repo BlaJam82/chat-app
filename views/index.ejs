@@ -16,31 +16,33 @@
       <div class="room-section">
         <form id="roomForm">
           <h2>Welcome to ChatApp, <%= user.firstName %>!</h2>
-          <h2>Select or Create a Room</h2>
+          <h2>Create a Room</h2>
           <div class="input-group">
             <i class="fas fa-door-open"></i>
             <input
               type="text"
               name="room"
-              placeholder="Enter a room name"
+              placeholder="Enter room name"
               required
               autocomplete="off"
             />
           </div>
           <div class="input-group">
+            <i class="fa fa-folder"></i>
             <input
               type="text"
               id="customCategory"
-              placeholder="Or enter a new category"
+              placeholder="Enter category name"
             />
           </div>
           <div class="button-wrapper">
-            <button type="submit">Create or Join Room</button>
+            <button type="submit">Create Room</button>
           </div>
         </form>
-
         <div class="button-wrapper">
-          <button id="showRooms" type="submit">Show Rooms</button>
+          <button id="showRooms" type="submit">
+            <%= user.firstName %>'s Rooms
+          </button>
         </div>
 
         <p id="adminMessage"></p>
@@ -79,8 +81,7 @@
     </div>
 
     <script>
-       const firstName = "<%= user.firstName %>";
-       let enrolledRooms = <%- JSON.stringify(Array.from(user.enrolledRooms?.entries() || []).filter(([_, v]) => v).map(([k]) => k)) %>;
+      let enrolledRooms = <%- JSON.stringify(Array.from(user.enrolledRooms?.entries() || []).filter(([_, v]) => v).map(([k]) => k)) %>;
       let visibleCategories = <%- JSON.stringify(Object.fromEntries(user.visibleCategories ? [...user.visibleCategories] : [])) %>;
     </script>
 

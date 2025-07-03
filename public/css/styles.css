@@ -553,6 +553,10 @@ a:hover {
   color: #333;
 }
 
+.last-time.not-joined-margin {
+  margin-right: 32px;
+}
+
 .room-category {
   font-weight: bold;
   margin-top: 10px;

@@ -174,22 +174,23 @@ function buildRoomItem(room, lastMessages) {
   const li = document.createElement("li");
   li.classList.add("room-item");
 
-  // Make <li> clickable instead of just the link
   li.addEventListener("click", (e) => handleRoomClick(e, room));
 
   const link = document.createElement("a");
   link.href = "#";
   link.textContent = capitalizeWords(room);
   link.classList.add("room-link", "two-line-truncate");
-  if (!enrolledRooms.includes(room)) link.classList.add("not-joined");
 
-  // ❌ Remove individual link listener
-  // link.addEventListener("click", (e) => handleRoomClick(e, room));
+  const isJoined = enrolledRooms.includes(room);
+  if (!isJoined) link.classList.add("not-joined");
 
   const lastMessageSpan = document.createElement("span");
   const lastTimeSpan = document.createElement("span");
   lastMessageSpan.classList.add("last-message", "two-line-truncate");
   lastTimeSpan.classList.add("last-time");
+  if (!isJoined) {
+    lastTimeSpan.classList.add("not-joined-margin");
+  }
 
   const msg = lastMessages[room];
   if (msg && msg.text && msg.sender) {
@@ -211,27 +212,30 @@ function buildRoomItem(room, lastMessages) {
     lastTimeSpan.textContent = "";
   }
 
-  const leaveBtn = document.createElement("button");
-  leaveBtn.textContent = "❌";
-  leaveBtn.classList.add("leave-btn");
-
-  // Prevent ❌ button from triggering parent <li> click
-  leaveBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // 👈 Important
-    if (!confirm("Are you sure you want to leave this room?")) return;
-
-    fetch("/user/room/toggle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomName: room }),
-    }).then(() => socket.emit("getRooms"));
-  });
-
   li.appendChild(link);
   li.appendChild(lastMessageSpan);
   li.appendChild(lastTimeSpan);
-  li.appendChild(leaveBtn);
+
+  // ✅ Only add leave button if user is enrolled
+  if (isJoined) {
+    const leaveBtn = document.createElement("button");
+    leaveBtn.textContent = "❌";
+    leaveBtn.classList.add("leave-btn");
+
+    leaveBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!confirm("Are you sure you want to leave this room?")) return;
+
+      fetch("/user/room/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomName: room }),
+      }).then(() => socket.emit("getRooms"));
+    });
+
+    li.appendChild(leaveBtn);
+  }
 
   return li;
 }
@@ -362,6 +366,27 @@ if (roomForm) {
   showRoomsBtn.addEventListener("click", () => {
     renderRooms(allGroupedRooms, lastMessages);
     showRoomList();
+
+    // Push new state to browser history
+    history.pushState({ showRooms: true }, "", "#rooms");
+  });
+
+  window.addEventListener("popstate", (event) => {
+    if (event.state?.showRooms) {
+      showRoomList(); // ➕ This already adds .active
+    } else {
+      // Go back to the room form view
+      roomList.style.display = "none";
+      roomForm.style.display = "block";
+      backToRoomsIndex.style.display = "none";
+      showRoomsBtn.style.display = "block";
+
+      // ✅ Only remove .active if it’s currently visible
+      const headerContainer = document.querySelector(".room-header-container");
+      if (headerContainer && headerContainer.classList.contains("active")) {
+        headerContainer.classList.remove("active");
+      }
+    }
   });
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -370,6 +395,12 @@ if (roomForm) {
       setTimeout(() => {
         flashMessage.style.display = "none";
       }, 3500);
+    }
+
+    // 👇 Load Show Rooms view if URL includes #rooms
+    if (location.hash === "#rooms") {
+      renderRooms(allGroupedRooms, lastMessages);
+      showRoomList();
     }
 
     const categorySelect = document.getElementById("roomCategory");
@@ -439,6 +470,11 @@ if (roomForm) {
     container.appendChild(showAllToggle);
     container.appendChild(searchInput);
     container.appendChild(categorySelect);
+
+    // ✅ Check for hash and activate room view
+    if (window.location.hash === "#rooms") {
+      showRoomList();
+    }
   });
 
   socket.on("message", (data) => {
