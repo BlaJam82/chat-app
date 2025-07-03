@@ -1,3 +1,5 @@
+import { confirmModal } from "./modalManager.js";
+
 const socket = io();
 
 const roomForm = document.getElementById("roomForm");
@@ -222,16 +224,23 @@ function buildRoomItem(room, lastMessages) {
     leaveBtn.textContent = "❌";
     leaveBtn.classList.add("leave-btn");
 
-    leaveBtn.addEventListener("click", (e) => {
+    // Inside leave button click handler:
+    leaveBtn.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!confirm("Are you sure you want to leave this room?")) return;
 
-      fetch("/user/room/toggle", {
+      const confirmed = await confirmModal(
+        "Are you sure you want to leave this room?"
+      );
+      if (!confirmed) return;
+
+      await fetch("/user/room/toggle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: room }),
-      }).then(() => socket.emit("getRooms"));
+      });
+
+      socket.emit("getRooms");
     });
 
     li.appendChild(leaveBtn);
@@ -240,31 +249,33 @@ function buildRoomItem(room, lastMessages) {
   return li;
 }
 
-function handleRoomClick(e, room) {
+async function handleRoomClick(e, room) {
   e.preventDefault();
   const isEnrolled = enrolledRooms.includes(room.toLowerCase());
 
   if (isEnrolled) {
     window.location.href = `/chat/${encodeURIComponent(room)}`;
   } else {
-    const confirmJoin = confirm(
+    const confirmJoin = await confirmModal(
       "You’re not enrolled in this room. Would you like to join it?"
     );
     if (!confirmJoin) return;
 
-    fetch("/user/room/toggle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomName: room }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          enrolledRooms.push(room); // Update local cache
-          window.location.href = `/chat/${encodeURIComponent(room)}`;
-        }
-      })
-      .catch((err) => console.error("Failed to join room:", err));
+    try {
+      const res = await fetch("/user/room/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomName: room }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        enrolledRooms.push(room); // ✅ Update local state
+        window.location.href = `/chat/${encodeURIComponent(room)}`;
+      }
+    } catch (err) {
+      console.error("Failed to join room:", err);
+    }
   }
 }
 
@@ -292,15 +303,14 @@ if (roomForm) {
       });
 
       // Listen for "roomExists" error from server
-      socket.once("roomExists", (data) => {
-        const userConfirmed = confirm(
+      socket.once("roomExists", async (data) => {
+        const userConfirmed = await confirmModal(
           `"${capitalizeWords(
             data.room
-          )}" already exists.\nWould you like to join it instead?`
+          )}" already exists. Would you like to join it instead?`
         );
 
         if (userConfirmed) {
-          // Re-emit to join without creating
           socket.emit("joinRoom", {
             room: data.room,
             sender: firstName,

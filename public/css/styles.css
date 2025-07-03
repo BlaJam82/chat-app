@@ -609,6 +609,7 @@ a:hover {
 }
 
 /* === Modal Overlay & Box Styling === */
+
 #modalOverlay {
   position: fixed;
   top: 0;
@@ -689,6 +690,16 @@ a:hover {
 #deleteConfirmBtn {
   background-color: #dc3545;
   color: #fff;
+}
+
+#confirmYesBtn {
+  background-color: #28a745;
+  color: #fff;
+}
+
+#confirmNoBtn {
+  background-color: #ccc;
+  color: #333;
 }
 
 /* === Animations === */

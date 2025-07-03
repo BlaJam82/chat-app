@@ -1,24 +1,16 @@
 const socket = io();
+import { openEditModal, openDeleteModal, closeModals } from "./modalManager.js";
 
 // DOM Elements
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
 
-// Room and user info from global vars or empty fallback
+// Room and user info
 const roomName = typeof room !== "undefined" ? room : "";
 let currentUserId = typeof sender !== "undefined" ? sender : "";
 
-// Modal elements
-const modalOverlay = document.getElementById("modalOverlay");
-const editModal = document.getElementById("editModal");
-const deleteModal = document.getElementById("deleteModal");
-const editInput = document.getElementById("editInput");
-
-let currentEditMessageId = null;
-let currentDeleteMessageId = null;
-
-// Format timestamp nicely
+// --- Format timestamp nicely ---
 function formatTime(dateInput) {
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "Invalid Time";
@@ -26,12 +18,11 @@ function formatTime(dateInput) {
   const year = String(d.getFullYear()).slice(-2);
   const month = (d.getMonth() + 1).toString().padStart(2, "0");
   const day = d.getDate().toString().padStart(2, "0");
-
   let hours = d.getHours();
   const minutes = d.getMinutes().toString().padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
 
-  hours = hours % 12 || 12; // 0 should become 12
+  hours = hours % 12 || 12;
 
   return `${month}/${day}/${year} - ${hours}:${minutes} ${ampm}`;
 }
@@ -83,7 +74,7 @@ socket.on("messageEdited", ({ messageId, newText }) => {
     const content = messageDiv.querySelector(".message-text");
     if (content) {
       const parts = content.textContent.split(":");
-      const sender = parts[0]; // Format: "Blake: Hello"
+      const sender = parts[0];
       content.textContent = `${sender.trim()}: ${newText} (edited)`;
     }
   }
@@ -94,7 +85,7 @@ socket.on("messageDeleted", ({ messageId }) => {
   if (messageDiv) messageDiv.remove();
 });
 
-// --- Send message form handler ---
+// --- Form submit handler ---
 
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -110,7 +101,7 @@ chatForm.addEventListener("submit", (e) => {
   chatInput.value = "";
 });
 
-// --- UI: Add message element ---
+// --- Add message to chatbox ---
 
 function addMessage(
   text,
@@ -143,7 +134,7 @@ function addMessage(
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// --- Popup menu for editing/deleting messages ---
+// --- Context menu for editing/deleting ---
 
 function showPopup(messageElement, messageId) {
   removePopup();
@@ -165,10 +156,26 @@ function showPopup(messageElement, messageId) {
     display: "block",
   });
 
-  popup.innerHTML = `
-    <button onclick="openEditModal('${messageId}')">✏️ Edit</button>
-    <button onclick="openDeleteModal('${messageId}')">🗑️ Delete</button>
-  `;
+  // Create Edit Button
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "✏️ Edit";
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openEditModal(messageId, socket);
+    removePopup();
+  });
+
+  // Create Delete Button
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "🗑️ Delete";
+  deleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openDeleteModal(messageId, socket);
+    removePopup();
+  });
+
+  popup.appendChild(editBtn);
+  popup.appendChild(deleteBtn);
 
   document.body.appendChild(popup);
 }
@@ -178,12 +185,19 @@ function removePopup() {
   if (existing) existing.remove();
 }
 
+export { showPopup, removePopup };
+
+// --- Click outside to close popup ---
+
 document.addEventListener("click", function (e) {
   if (
     !e.target.closest(".options-button") &&
-    !e.target.closest(".message-popup")
+    !e.target.closest(".message-popup") &&
+    !e.target.closest(".modal") && // adjust if needed
+    !e.target.closest("#modalOverlay")
   ) {
     removePopup();
+    closeModals(); // <—— now will hide modals too
     return;
   }
 
@@ -192,64 +206,3 @@ document.addEventListener("click", function (e) {
     showPopup(e.target, messageId);
   }
 });
-
-// --- Modal handlers ---
-
-function openEditModal(messageId) {
-  removePopup();
-  currentEditMessageId = messageId;
-  const messageDiv = document.getElementById(messageId);
-  const oldText =
-    messageDiv
-      ?.querySelector(".message-text")
-      ?.textContent.replace(" (edited)", "")
-      .split(": ")
-      .slice(1)
-      .join(": ") || "";
-
-  editInput.value = oldText;
-  modalOverlay.style.display = "block";
-  editModal.style.display = "block";
-  editInput.focus();
-}
-
-function openDeleteModal(messageId) {
-  removePopup();
-  currentDeleteMessageId = messageId;
-  modalOverlay.style.display = "block";
-  deleteModal.style.display = "block";
-}
-
-document.getElementById("editConfirmBtn").addEventListener("click", () => {
-  const newText = editInput.value.trim();
-  if (newText && currentEditMessageId) {
-    socket.emit("editMessage", {
-      messageId: currentEditMessageId,
-      newText,
-    });
-  }
-  closeModals();
-});
-
-document.getElementById("editCancelBtn").addEventListener("click", closeModals);
-
-document.getElementById("deleteConfirmBtn").addEventListener("click", () => {
-  if (currentDeleteMessageId) {
-    socket.emit("deleteMessage", {
-      messageId: currentDeleteMessageId,
-    });
-  }
-  closeModals();
-});
-
-document
-  .getElementById("deleteCancelBtn")
-  .addEventListener("click", closeModals);
-
-function closeModals() {
-  modalOverlay.style.display = "none";
-  editModal.style.display = "none";
-  deleteModal.style.display = "none";
-  currentEditMessageId = null;
-  currentDeleteMessageId = null;
-}
