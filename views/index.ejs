@@ -83,12 +83,18 @@
     </div>
 
     <script>
-      const firstName = "<%= user.firstName %>";
-      let enrolledRooms = <%- JSON.stringify(Array.from(user.enrolledRooms?.entries() || []).filter(([_, v]) => v).map(([k]) => k)) %>;
-      let visibleCategories = <%- JSON.stringify(Object.fromEntries(user.visibleCategories ? [...user.visibleCategories] : [])) %>;
+      window.firstName = <%- JSON.stringify(user.firstName || "") %>;
+      window.enrolledRooms = <%- JSON.stringify(
+        Array.from(user.enrolledRooms?.entries() || [])
+          .filter(([_, v]) => v)
+          .map(([k]) => k)
+      ) %>;
+      window.visibleCategories = <%- JSON.stringify(
+        Object.fromEntries(user.visibleCategories ? [...user.visibleCategories] : [])
+      ) %>;
     </script>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script type="module" src="/js/script.js"></script>
+    <script type="module" src="/js/main.js"></script>
   </body>
 </html>
