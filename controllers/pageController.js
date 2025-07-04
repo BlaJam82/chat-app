@@ -38,6 +38,13 @@ exports.getIndex = async (req, res) => {
       Object.fromEntries(user.visibleCategories || [])
     );
 
+    function capitalizeWords(str) {
+      return str
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+
     res.render("index", {
       user,
       categories: visibleCategories,

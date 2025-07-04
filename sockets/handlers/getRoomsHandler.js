@@ -1,4 +1,3 @@
-// handlers/getRoomsHandler.js
 const Room = require("../../models/Room");
 const Message = require("../../models/Message");
 const User = require("../../models/User");
@@ -14,6 +13,7 @@ function setupGetRooms(io, socket) {
           groupedRooms: {},
           visibleCategories: {},
           lastMessages: {},
+          showAll,
         });
       }
 
@@ -23,9 +23,11 @@ function setupGetRooms(io, socket) {
           groupedRooms: {},
           visibleCategories: {},
           lastMessages: {},
+          showAll,
         });
       }
 
+      // Ensure Maps
       if (!(user.enrolledRooms instanceof Map)) {
         user.enrolledRooms = new Map(Object.entries(user.enrolledRooms || {}));
       }
@@ -47,7 +49,9 @@ function setupGetRooms(io, socket) {
       const lastMessages = {};
 
       for (const room of rooms) {
-        if (!groupedRooms[room.category]) groupedRooms[room.category] = [];
+        if (!groupedRooms[room.category]) {
+          groupedRooms[room.category] = [];
+        }
         groupedRooms[room.category].push(room.name);
 
         const lastMsg = await Message.findOne({ room: room.name })
@@ -72,18 +76,20 @@ function setupGetRooms(io, socket) {
         groupedRooms,
         visibleCategories,
         lastMessages,
+        showAll, // Important for client to track current state
       });
 
       console.log(
-        showAll ? "🔍 All rooms sent to client" : "👤 Enrolled rooms sent:",
-        groupedRooms
+        showAll ? "📡 Sent ALL rooms" : "📡 Sent JOINED rooms",
+        Object.keys(groupedRooms)
       );
     } catch (err) {
-      console.error("❌ Error fetching rooms:", err);
+      console.error("❌ Error in getRooms:", err);
       socket.emit("activeRooms", {
         groupedRooms: {},
         visibleCategories: {},
         lastMessages: {},
+        showAll,
       });
     }
   });
