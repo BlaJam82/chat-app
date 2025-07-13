@@ -66,3 +66,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+window.addEventListener("hashchange", () => {
+  const roomHeader = document.querySelector(".room-header-container");
+
+  if (window.location.hash === "#rooms") {
+    showRoomList(); // reapply UI state
+    roomHeader?.classList.add("active");
+  } else {
+    roomHeader?.classList.remove("active");
+  }
+});
